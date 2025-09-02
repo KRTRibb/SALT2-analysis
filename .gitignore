@@ -21,6 +21,7 @@ data/raw/
 data/processed/
 results/
 *.csv
+!data/raw/flux_fits_data.csv
 *.png
 *.pdf
 *.log
@@ -37,4 +38,3 @@ build/
 # Temporary files
 *.tmp
 *.swp
-

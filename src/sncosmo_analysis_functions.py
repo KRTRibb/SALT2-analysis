@@ -302,7 +302,7 @@ def permutation_test_energy_parallel(data1, data2, n_permutations=1000):
         return energy_distance_2d(combined[:n1], combined[n1:])
     
     perm_dists = Parallel(n_jobs=-1)(delayed(one_perm)(seed) for seed in range(n_permutations))
-    p_value = np.mean(np.array(perm_dists) >= obs_dist)
+    p_value = 1 - np.mean(np.array(perm_dists) >= obs_dist)
     return obs_dist, p_value
 
 def run_energy_distance(df, x_col, y_col, group1, group2, group_name: str, n_permutations=1000):
