@@ -40,29 +40,11 @@ import requests
 import io
 
 import config
+from core import convert_magpsf_to_flux
 
 APIURL = config.FINK_API_URL
 LightcurveDict = Dict[Tuple[str, ...], Table]
 
-def convert_magpsf_to_flux(magpsf: np.ndarray, sigmapsf: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Convert ZTF PSF magnitudes to flux in milliJanskys (mJy).
-
-    Parameters:
-    magpsf : np.ndarray
-        Array of ZTF PSF magnitudes.
-    sigmapsf : np.ndarray
-        Array of magnitude uncertainties.
-
-    Returns:
-    flux : np.ndarray
-        Flux values in mJy.
-    sigmaflux : np.ndarray
-        Uncertainties on flux values in mJy.
-    """
-    flux = 3631 * 10**(-0.4 * magpsf) * 1e3  # Factor of 10^3 for mJ conversion
-    sigmaflux = 0.4 * np.log(10) * sigmapsf * flux
-    return flux, sigmaflux
 
 
 def get_and_process_light_curve_data(object_ids: List[str]) -> Tuple[LightcurveDict, pd.DataFrame]:

@@ -9,10 +9,10 @@ import os
 from scipy.stats import chi2
 import csv
 import math
+
 import config
+from core import convert_magpsf_to_flux
 sns.set_context('talk')
-
-
 
 def get_object_ids(start_date: str, end_date: str) -> np.array:
     r = requests.post(
@@ -33,12 +33,6 @@ def get_object_ids(start_date: str, end_date: str) -> np.array:
     object_ids = pdf["i:objectId"].unique()
 
     return object_ids
-
-def convert_magpsf_to_flux(magpsf, sigmapsf):
-    flux = 3631*10**(-4*magpsf / 10) 
-    sigmaflux = 4*np.log(10) / 10 * sigmapsf * flux 
-
-    return flux, sigmaflux
 
 def sigmoid(t, a, b, c):
     return a / (1 + np.exp(-c * (t - b)))

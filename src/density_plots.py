@@ -27,7 +27,7 @@ Outputs:
 import sncosmo_analysis_functions as saf
 
 
-def main():
+def density_plots():
     """
     Run the full sncosmo analysis workflow for both TNS classification and color-change stratifications.
 
@@ -57,4 +57,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    density_plots()
