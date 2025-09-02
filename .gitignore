@@ -1,23 +1,40 @@
-# Python
+# Python cache files
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.env
+
+# Virtual environments
 venv/
+.env
 .envrc
 
-# VS Code
+# VS Code settings
 .vscode/
 
-# Data and results
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Data and results (usually large or generated files)
 data/raw/
 data/processed/
 results/
 *.csv
 *.png
 *.pdf
+*.log
 
-# OS
-.DS_Store
-Thumbs.db
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# Optional: compiled files
+*.so
+*.egg-info/
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.swp
+
