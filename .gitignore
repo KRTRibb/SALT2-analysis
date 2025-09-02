@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+venv/
+.envrc
+
+# VS Code
+.vscode/
+
+# Data and results
+data/raw/
+data/processed/
+results/
+*.csv
+*.png
+*.pdf
+
+# OS
+.DS_Store
+Thumbs.db
