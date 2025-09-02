@@ -47,6 +47,8 @@ FINK_API_URL = "https://api.fink-portal.org"
 START_DATE = '2024-08-06'
 END_DATE = '2025-08-06'
 
+NUM_TNS_SEARCH_FILES = 6
+
 # SNCosmo specific settings
 FID_TO_BAND = {1: "ztfg", 2: "ztfr"}
 DEFAULT_Z_BOUNDS = (0.01, 0.2) # Used for bounds on z when fitting the SALT2 model without a known redshi

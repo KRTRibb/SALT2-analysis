@@ -1,12 +1,17 @@
 import pandas as pd
+import config
 
-tns_sn_df = pd.read_csv("Swinburne/TNS search data/tns_search_combined.csv")
+files = [f"tns_search{i}.csv" for i in range(1, config.NUM_TNS_SEARCH_FILES + 1)]
+
+tns_sn_df = pd.concat((pd.read_csv(file) for file in files), ignore_index=True)
+
+tns_sn_df.to_csv(config.TNS_SEARCH_DATA_DIR / "tns_search_combined.csv")
 maskZTF = tns_sn_df["Disc. Internal Name"].str.contains("ZTF", na=False)
 
 tns_sn_df = tns_sn_df[maskZTF]
 tns_sn_ids = tns_sn_df["Disc. Internal Name"]
 
-flux_fits_df = pd.read_csv(f"/Users/kai/Desktop/Coding/Python/Swinburne/flux_plots_50.0%_confidence/evaluation_updated.csv")
+flux_fits_df = pd.read_csv(config.RAW_DATA / "flux_fits_initial.csv")
 
 
 flux_fits_df = flux_fits_df.merge(
@@ -22,4 +27,4 @@ flux_fits_df["redshift"] = flux_fits_df["Redshift"]
 
 flux_fits_df = flux_fits_df.drop(columns=["Disc. Internal Name", "Obj. Type", "Redshift"])
 
-flux_fits_df.to_csv("flux_fits_data.csv")
+flux_fits_df.to_csv(config.RAW_DATA / "flux_fits_data.csv")
