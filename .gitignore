@@ -1,40 +1,22 @@
-# Python cache files
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Virtual environments
-venv/
-.env
-.envrc
-
-# VS Code settings
-.vscode/
-
-# OS-specific files
-.DS_Store
-Thumbs.db
-
-# Data and results (usually large or generated files)
-data/raw/
-data/processed/
-results/
-*.csv
-!data/raw/flux_fits_data.csv
-*.png
-*.pdf
-*.log
-
-# Jupyter notebooks checkpoints
-.ipynb_checkpoints/
-
-# Optional: compiled files
-*.so
 *.egg-info/
+*.egg
 dist/
 build/
 
-# Temporary files
-*.tmp
-*.swp
+.venv/
+
+.ipynb_checkpoints/
+
+
+Data/*
+
+!Data/raw/
+Data/raw/*
+!Data/raw/TNS_search/
+
+
+results/
