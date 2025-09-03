@@ -190,7 +190,7 @@ def plot_joint_distribution(
     upper_percentile: float = 0.9,
 ):
     """
-    Plot joint distribution (KDE + scatter) of two features, stratified by a categorical column.
+    Plot joint distribution (KDE + scatter) of two features, stratified by a column name.
 
     Parameters:
     df : pd.DataFrame

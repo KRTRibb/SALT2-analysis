@@ -3,11 +3,16 @@ from plot_flux_fits import plot_flux_fits
 from sncosmo_fits import fit_SALT2
 from sncosmo_fits_fixed_z import fit_SALT2_fixed_z
 from density_plots import density_plots
+from process_tns_search import tns_search_process
 
 def main():
     print("Doing flux fits")
     plot_flux_fits()
     print("Finished with flux fits\n")
+
+    print("Processing TNS search")
+    tns_search_process()
+    print("Finished with TNS search")
 
     print("Doing sncosmo general fits")
     fit_SALT2()

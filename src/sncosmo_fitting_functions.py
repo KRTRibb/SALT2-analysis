@@ -96,7 +96,7 @@ def get_and_process_light_curve_data(object_ids: List[str], start_date: str, end
     return light_curve_dict, error_pdf
 
 
-def get_and_process_light_curve_data_fixed_z(object_info: List[Tuple[str, str, float]]) -> Tuple[LightcurveDict, pd.DataFrame]:
+def get_and_process_light_curve_data_fixed_z(object_info: List[Tuple[str, str, float]], start_date: str, end_date: str) -> Tuple[LightcurveDict, pd.DataFrame]:
     """
     Download and process light curve data for objects with fixed redshifts.
 
@@ -117,7 +117,7 @@ def get_and_process_light_curve_data_fixed_z(object_info: List[Tuple[str, str, f
 
     for obj_id, tns_class, z in object_info:
         try: 
-            lc_valid = fetch_valid_object_data_fink(obj_id)
+            lc_valid = fetch_valid_object_data_fink(obj_id, start_date, end_date)
 
             mjd = lc_valid["i:jd"].apply(lambda x: x - 2400000.5)
             flux, fluxerr = convert_magpsf_to_flux(
@@ -242,7 +242,9 @@ def run_fitting(object_ids: List[str]):
     - Light curve plots saved to GENERAL_SNCOSMO_PLOTS directory.
     """
 
-    light_curve_dict, error_df = get_and_process_light_curve_data(object_ids)
+    start_date, end_date = config.START_DATE, config.END_DATE
+
+    light_curve_dict, error_df = get_and_process_light_curve_data(object_ids, start_date, end_date)
 
     error_df.to_csv(config.RAW_DATA / "general_errors.csv")
 
@@ -265,7 +267,9 @@ def run_fitting_fixed_z(object_info: List[Tuple[str, str, float]]):
     - Light curve plots saved to FIXED_Z_SNCOSMO_PLOTS directory.
     """
 
-    light_curve_dict, error_df = get_and_process_light_curve_data_fixed_z(object_info)
+    start_date, end_date = config.START_DATE, config.END_DATE
+
+    light_curve_dict, error_df = get_and_process_light_curve_data_fixed_z(object_info, start_date, end_date)
 
     error_df.to_csv(config.RAW_DATA / "fixed_z_errors.csv")
 
