@@ -362,7 +362,12 @@ def get_feature_groups(
         'Rise Time vs x1': (rise_features, 'x1'),
         'Slope vs x1': (slope_features, 'x1'),
         'Curvature vs x1': (curvature_features, 'x1'),
-        'Early g-r Color vs c': (early_color_features, 'c'),
+        'Early g-r color vs x1': (early_color_features, 'x1'),
+
+        'Rise Time vs c': (rise_features, 'c'),
+        'Slope vs c': (slope_features, 'c'),
+        'Curvature vs c': (curvature_features, 'c'),
+        'Early g-r color vs c': (early_color_features, 'c'),
 
         'Rise Time vs z': (rise_features, 'z'),
         'Slope vs z': (slope_features, 'z'),

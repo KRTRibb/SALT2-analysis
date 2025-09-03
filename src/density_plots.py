@@ -41,13 +41,13 @@ def density_plots():
     sncosmo_dir = "data/raw/general_results.csv"
     flux_dir = "data/raw/flux_fits_data.csv"
 
-    # df_tns = saf.load_flux_and_sncosmo(flux_dir, sncosmo_dir, stratify_col="TNS classified")
+    df_tns = saf.load_flux_and_sncosmo(flux_dir, sncosmo_dir, stratify_col="TNS classified")
 
     feature_groups = saf.get_feature_groups()
 
-    # print("Running analysis stratified by TNS classification")
-    # saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="TNS classified")
-    # print("Done with TNS stratification.\n")
+    print("Running analysis stratified by TNS classification")
+    saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="TNS classified")
+    print("Done with TNS stratification.\n")
 
     df_color = saf.load_flux_and_sncosmo(flux_dir, sncosmo_dir, stratify_col="color change")
 
@@ -58,3 +58,4 @@ def density_plots():
 
 if __name__ == "__main__":
     density_plots()
+    
