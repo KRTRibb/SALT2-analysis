@@ -291,6 +291,9 @@ def permutation_test_energy_parallel(data1, data2, n_permutations=1000):
         Observed energy distance between data1 and data2.
     p_value : float
         Permutation test p-value.
+
+    Notes:
+        Computes the permutations in parallel using all available cores (n_jobs=-1)
     """
     obs_dist = energy_distance_2d(data1, data2)
     combined = np.vstack([data1, data2])

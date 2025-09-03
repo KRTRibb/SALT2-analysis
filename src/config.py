@@ -44,10 +44,10 @@ FIXED_Z_SNCOSMO_PLOTS = PLOTS_DIR / "sncomso_plots_fixed_z"
 FINK_API_URL = "https://api.fink-portal.org"
 
 # Date range
-START_DATE = '2024-07-31'
+START_DATE = '2022-08-06'
 END_DATE = '2025-08-06'
 
-NUM_TNS_SEARCH_FILES = 6
+NUM_TNS_SEARCH_FILES = 13
 
 # SNCosmo specific settings
 FID_TO_BAND = {1: "ztfg", 2: "ztfr"}

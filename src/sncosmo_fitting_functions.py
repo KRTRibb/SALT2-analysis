@@ -168,20 +168,24 @@ def fit_and_save_sncosmo_model(light_curve_dict: LightcurveDict, save_dir: str) 
     results_pdf = pd.DataFrame(columns=col_names)
 
     for obj_id, lc_data in light_curve_dict.items():
+        try:
+            result, fitted_model = sncosmo.fit_lc(
+                lc_data,
+                model,
+                ['z', 't0', 'x0', 'x1', 'c'],
+                bounds={'z': config.DEFAULT_Z_BOUNDS}
+            )
 
-        result, fitted_model = sncosmo.fit_lc(
-            lc_data,
-            model,
-            ['z', 't0', 'x0', 'x1', 'c'],
-            bounds={'z': config.DEFAULT_Z_BOUNDS}
-        )
+            params_and_errors = np.concatenate((result.parameters, list(result.errors.values())))
+            data_to_save = [obj_id, result.ncall, result.ndof, result.chisq, 1 - chi2.cdf(result.chisq, result.ndof), *params_and_errors]
+            results_pdf.loc[len(results_pdf)] = data_to_save
 
-        params_and_errors = np.concatenate((result.parameters, list(result.errors.values())))
-        data_to_save = [obj_id, result.ncall, result.ndof, result.chisq, 1 - chi2.cdf(result.chisq, result.ndof), *params_and_errors]
-        results_pdf.loc[len(results_pdf)] = data_to_save
+            sncosmo.plot_lc(lc_data, model=fitted_model, errors=result.errors)
+            plt.savefig(save_dir / f"{obj_id}.png")
+            plt.close()
 
-        sncosmo.plot_lc(lc_data, model=fitted_model, errors=result.errors)
-        plt.savefig(save_dir / f"{obj_id}.png")
+        except Exception as e:
+            print(f"sncosmo fit failed for {obj_id}: {e}")
 
     return results_pdf
 
@@ -210,20 +214,23 @@ def fit_and_save_sncosmo_model_fixed_z(light_curve_dict: LightcurveDict, save_di
     results_pdf = pd.DataFrame(columns=col_names)
 
     for (obj_id, tns_class, fixed_z), lc_data in light_curve_dict.items():
+        try:
+            model.set(z=fixed_z)
+            result, fitted_model = sncosmo.fit_lc(
+                lc_data,
+                model,
+                ['t0', 'x0', 'x1', 'c'],
+            )
 
-        model.set(z=fixed_z)
-        result, fitted_model = sncosmo.fit_lc(
-            lc_data,
-            model,
-            ['t0', 'x0', 'x1', 'c'],
-        )
+            params_and_errors = np.concatenate((result.parameters, list(result.errors.values())))
+            data_to_save = [obj_id, result.ncall, result.ndof, result.chisq, 1 - chi2.cdf(result.chisq, result.ndof), tns_class, *params_and_errors]
+            results_pdf.loc[len(results_pdf)] = data_to_save
 
-        params_and_errors = np.concatenate((result.parameters, list(result.errors.values())))
-        data_to_save = [obj_id, result.ncall, result.ndof, result.chisq, 1 - chi2.cdf(result.chisq, result.ndof), tns_class, *params_and_errors]
-        results_pdf.loc[len(results_pdf)] = data_to_save
+            sncosmo.plot_lc(lc_data, model=fitted_model, errors=result.errors)
+            plt.savefig(save_dir / f"{obj_id}_fixed_z.png")
 
-        sncosmo.plot_lc(lc_data, model=fitted_model, errors=result.errors)
-        plt.savefig(save_dir / f"{obj_id}_fixed_z.png")
+        except Exception as e:
+            print(f"fixed z sncosmo fit failed for {obj_id}: {e}")
 
     return results_pdf
 

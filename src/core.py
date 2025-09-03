@@ -42,7 +42,6 @@ def fetch_valid_object_data_fink(object_id: str, start_date: str, end_date: str)
     Notes:
         - start_date and end_date must be in the yyyy-mm-dd format
         - Includes upper limits (`withupperlim=True`) in the download.
-
     """
 
     r = requests.post(

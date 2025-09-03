@@ -1,11 +1,9 @@
 Early SNe Ia Lightcurve Analysis
 
-Author: Kieran Tribble
+Author: Kieran Tribble 
 Institution: Imperial College London
 Role: Student
 Email: [kieran.tribble24@imperial.ac.uk](mailto:kieran.tribble24@imperial.ac.uk)
-
----
 
 Overview
 
@@ -26,7 +24,7 @@ Workflow
 
 - Jupyter notebooks in the notebooks/ folder are used for exploratory data analysis.
 - Some plots are already provided.
-- Additional helper functions are available in src/exploratory\_analysis\_functions.py
+- Helper functions for exploratory analysis of sncosmo fits are available in notebooks/exploratory\_sncosmo\_analysis\_functions.py
 
 3. Feature Comparison and Density Plots
 
@@ -39,12 +37,11 @@ Workflow
 
 Project Structure
 
-data/             # Raw and processed datasets
-notebooks/        # Jupyter notebooks for exploratory analysis
-results/          # Generated plots and fitted parameters
-src/              # Python scripts and function libraries
-.gitignore        # Git ignore rules
-README.md         # This file
+- data/: Raw and processed datasets
+- notebooks/: Jupyter notebooks for exploratory analysis
+- results/: Generated plots and fitted parameters
+- src/: Python scripts and function libraries
+- .gitignore: Git ignore rules
 
 
 Requirements
