@@ -37,17 +37,16 @@ import sncosmo
 from scipy.stats import chi2
 from typing import Dict, List, Tuple
 import requests
-import io
 
 import config
-from core import convert_magpsf_to_flux
+from core import convert_magpsf_to_flux, fetch_valid_object_data_fink
 
 APIURL = config.FINK_API_URL
 LightcurveDict = Dict[Tuple[str, ...], Table]
 
 
 
-def get_and_process_light_curve_data(object_ids: List[str]) -> Tuple[LightcurveDict, pd.DataFrame]:
+def get_and_process_light_curve_data(object_ids: List[str], start_date: str, end_date: str) -> Tuple[LightcurveDict, pd.DataFrame]:
     """
     Download and process light curve data for a list of object IDs.
 
@@ -61,9 +60,6 @@ def get_and_process_light_curve_data(object_ids: List[str]) -> Tuple[LightcurveD
     error_pdf : pd.DataFrame
         DataFrame containing object IDs and any errors encountered during download.
 
-    Notes:
-    - Hardcoded date range: 2024-07-31 to 2025-08-06.
-    - Includes upper limits (`withupperlim=True`) in the download.
     """
     light_curve_dict: LightcurveDict = {}
     error_pdf = pd.DataFrame(columns=['Object id', 'Error message'])
@@ -71,21 +67,11 @@ def get_and_process_light_curve_data(object_ids: List[str]) -> Tuple[LightcurveD
 
     for obj_id in object_ids:
         try: 
-            r = requests.post(
-                f'{APIURL}/api/v1/objects',
-                json={
-                    'objectId': obj_id,
-                    'output-format': 'json',
-                    'withupperlim': 'True',
-                    'startdate': '2024-07-31',
-                    'stopdate': '2025-08-06',
-                }
-            )
-            
-            light_curve = pd.read_json(io.BytesIO(r.content))
-            mask_valid = light_curve['d:tag'] == 'valid'
-            lc_valid = light_curve[mask_valid]
+
+            lc_valid = fetch_valid_object_data_fink(obj_id, start_date, end_date)
+
             mjd = lc_valid["i:jd"].apply(lambda x: x - 2400000.5)
+
             flux, fluxerr = convert_magpsf_to_flux(
                 lc_valid['i:magpsf'], lc_valid['i:sigmapsf']
             )
@@ -123,10 +109,6 @@ def get_and_process_light_curve_data_fixed_z(object_info: List[Tuple[str, str, f
         Dictionary mapping (object_id, tns_class, z) to an astropy Table of light curve data.
     error_pdf : pd.DataFrame
         DataFrame containing object IDs and any errors encountered during download.
-
-    Notes:
-    - Hardcoded date range: 2024-07-31 to 2025-08-06.
-    - Includes upper limits (`withupperlim=True`) in the download.
     """
 
     light_curve_dict: LightcurveDict = {}
@@ -135,20 +117,8 @@ def get_and_process_light_curve_data_fixed_z(object_info: List[Tuple[str, str, f
 
     for obj_id, tns_class, z in object_info:
         try: 
-            r = requests.post(
-                f'{APIURL}/api/v1/objects',
-                json={
-                    'objectId': obj_id,
-                    'output-format': 'json',
-                    'withupperlim': 'True',
-                    'startdate': '2024-07-31',
-                    'stopdate': '2025-08-06',
-                }
-            )
+            lc_valid = fetch_valid_object_data_fink(obj_id)
 
-            light_curve = pd.read_json(io.BytesIO(r.content))
-            mask_valid = light_curve['d:tag'] == 'valid'
-            lc_valid = light_curve[mask_valid]
             mjd = lc_valid["i:jd"].apply(lambda x: x - 2400000.5)
             flux, fluxerr = convert_magpsf_to_flux(
                 lc_valid['i:magpsf'], lc_valid['i:sigmapsf']
