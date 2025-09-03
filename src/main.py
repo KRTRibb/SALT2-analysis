@@ -1,4 +1,3 @@
-import config
 from plot_flux_fits import plot_flux_fits
 from sncosmo_fits import fit_SALT2
 from sncosmo_fits_fixed_z import fit_SALT2_fixed_z

@@ -3,7 +3,7 @@ import config
 
 def tns_search_process():
 
-    files = [f"tns_search{i}.csv" for i in range(1, config.NUM_TNS_SEARCH_FILES + 1)]
+    files = [f"data/raw/TNS_search/tns_search{i}.csv" for i in range(1, config.NUM_TNS_SEARCH_FILES + 1)]
 
     tns_sn_df = pd.concat((pd.read_csv(file) for file in files), ignore_index=True)
 
