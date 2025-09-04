@@ -18,6 +18,22 @@ def remove_outside_range(params, lower_bound, upper_bound, parameter):
     mask = (array[:, col_idx] >= lower_bound) & (array[:, col_idx] <= upper_bound)
     return array[mask]
 
+# def log_binning(data, ax, data_groups=False):
+#     if not data_groups: 
+#         data_min = np.min(data)
+#         data_max = np.max(data)
+    
+#         ax.set_xscale("log")
+#         bins = np.logspace(np.log10(data_min), np.log10(data_max), num=50)
+
+#     else:
+#         data_min = min(np.min(data1), np.min(data2))
+#         data_max = max(np.max(data1), np.max(data2))
+    
+#         ax.set_xscale("log")
+#         bins = np.logspace(np.log10(data_min), np.log10(data_max), num=50)
+
+
 # data format [data1, data2, [names], title]
 def plot_sncosmo_param_hist(data, width, height, nrows=1, ncols=5, 
                             share_y=False, data_groups=False, 

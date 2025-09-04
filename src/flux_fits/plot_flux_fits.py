@@ -1,6 +1,10 @@
 import sigmoid_power_fits as spf
+import sys, os
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import config
 
+print("imported")
 def plot_flux_fits():   
     start_date = config.START_DATE
     end_date = config.END_DATE
@@ -10,5 +14,5 @@ def plot_flux_fits():
 
     spf.plot_lc_and_fit_sigmoid_power_and_save(object_ids, start_date, end_date)  
 
-if __name__ == "__main__":
-    plot_flux_fits()
+# if __name__ == "__main__":
+#     plot_flux_fits()

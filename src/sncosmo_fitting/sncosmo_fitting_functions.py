@@ -36,7 +36,7 @@ from astropy.table import Table
 import sncosmo
 from scipy.stats import chi2
 from typing import Dict, List, Tuple
-import requests
+import sys, os
 
 import config
 from core import convert_magpsf_to_flux, fetch_valid_object_data_fink

@@ -22,15 +22,21 @@ Dependencies:
 """
 
 
-import os
+import os, sys
 import itertools
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import cdist
-import config
+from scipy.stats import gaussian_kde
+from matplotlib.gridspec import GridSpec
 from joblib import Parallel, delayed
+from matplotlib.colors import LinearSegmentedColormap
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+import config
+
 
 def load_flux_and_sncosmo(
     flux_path: str,
@@ -98,17 +104,14 @@ def load_flux_and_sncosmo(
 
     return df
 
-
-def add_rise_slope_curvature(df: pd.DataFrame, phases: tuple = (-12, -10, -8, -5), t_offset: int = 3) -> pd.DataFrame:
+def add_rise_slope_curvature_color(df: pd.DataFrame, t_offset: int = 3) -> pd.DataFrame:
     """
     Compute derived features from flux-fit parameters: rise time, slope, curvature,
-    and early g–r color at specified phases.
+    and early g-r color at specified phases.
 
     Parameters:
     df : pd.DataFrame
         Input DataFrame with flux-fit and SALT2 parameters.
-    phases : tuple, optional
-        Phases relative to t0 at which to compute early g–r color (default: (-12, -10, -8, -5)).
     t_offset : int, optional
         Time offset for slope/curvature calculations of power-law fits (default: 3).
 
@@ -152,7 +155,7 @@ def add_rise_slope_curvature(df: pd.DataFrame, phases: tuple = (-12, -10, -8, -5
             lambda x: "Ia" if isinstance(x, str) and "Ia" in x else "non-Ia"
         )
 
-    for phase in phases:
+    for phase in config.PHASES:
         t_sample = df['t0'] + phase
         df[f"sigmoid_gr_mag_{phase}"] = -2.5 * np.log10(
             (cleaned_sigmoid_flux(df['sigmoid_g_a'], df['sigmoid_g_b'], df['sigmoid_g_c'], t_sample)+25) /
@@ -178,6 +181,16 @@ def cleaned_power_flux(a,b,c,t):
     """
     return np.where(a.notna() & b.notna() & c.notna() & (t-b>0), a * (t-b)**c, np.nan)
 
+def freedman_diaconis_bins(data: np.ndarray) -> int:
+    """Compute number of bins using Freedman-Diaconis rule."""
+    data = np.asarray(data)
+    q75, q25 = np.percentile(data, [75, 25])
+    iqr = q75 - q25
+    bin_width = 2 * iqr * (len(data) ** (-1/3))
+    if bin_width <= 0:
+        return 10
+    bins = int(np.ceil((data.max() - data.min()) / bin_width))
+    return max(1, bins)
 
 def plot_joint_distribution(
     df: pd.DataFrame,
@@ -190,82 +203,154 @@ def plot_joint_distribution(
     upper_percentile: float = 0.9,
 ):
     """
-    Plot joint distribution (KDE + scatter) of two features, stratified by a column name.
-
-    Parameters:
-    df : pd.DataFrame
-        DataFrame containing features and stratification column.
-    x_col, y_col : str
-        Columns to plot on x and y axes.
-    stratify_col : str
-        Column used to stratify data (must be: 'tns_group' or 'color change').
-    save_path : str, optional
-        Path to save the figure. If None, the plot is not saved.
-    groups : list, optional
-        Specific groups to plot. If None, all unique values are used, plus 'combined'.
-    lower_percentile, upper_percentile : float, optional
-        Percentiles to clip extreme values (default: 0.1 and 0.9).
+    Plot joint distribution (2D KDE + scatter + marginal histograms) of two features,
+    stratified by a column.
     """
+
     if groups is None:
         groups = sorted(df[stratify_col].dropna().unique().tolist())
     if "combined" not in groups:
         groups.append("combined")
 
     n_groups = len(groups)
-    ncols = 3 if n_groups > 3 else 2
+    ncols = 2 if n_groups <= 3 else 3
     nrows = int(np.ceil(n_groups / ncols))
-    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 5 * nrows))
-    axes = axes.flatten()
+
+    fig = plt.figure(figsize=(6 * ncols, 6 * nrows))
 
     x_lower, x_upper = df[x_col].quantile([lower_percentile, upper_percentile])
     y_lower, y_upper = df[y_col].quantile([lower_percentile, upper_percentile])
 
-    cbar_obj = None
     for i, group in enumerate(groups):
-        ax = axes[i]
+        row, col = divmod(i, ncols)
+        outer_gs = GridSpec(nrows, ncols, figure=fig)[row, col]
+        inner_gs = GridSpec(4, 4, figure=fig,
+                            left=outer_gs.get_position(fig).xmin,
+                            right=outer_gs.get_position(fig).xmax,
+                            bottom=outer_gs.get_position(fig).ymin,
+                            top=outer_gs.get_position(fig).ymax,
+                            hspace=0.05, wspace=0.05)
+
+        ax_main = fig.add_subplot(inner_gs[1:, :-1])
+        ax_xdist = fig.add_subplot(inner_gs[0, :-1], sharex=ax_main)
+        ax_ydist = fig.add_subplot(inner_gs[1:, -1], sharey=ax_main)
+
         subset = df.copy() if group == "combined" else df[df[stratify_col] == group]
         mask = subset[x_col].between(x_lower, x_upper) & subset[y_col].between(y_lower, y_upper)
         subset = subset.loc[mask, [x_col, y_col]].dropna()
 
         if len(subset) > 1:
-            kde_plot = sns.kdeplot(
-                data=subset,
-                x=x_col,
-                y=y_col,
-                levels=5,
-                fill=True,
-                cmap="mako",
-                thresh=0.05,
-                ax=ax,
+            x = subset[x_col].to_numpy()
+            y = subset[y_col].to_numpy()
+
+            xy = np.vstack([x, y])
+            kde = gaussian_kde(xy)
+            xx, yy = np.meshgrid(
+                np.linspace(x.min(), x.max(), 100),
+                np.linspace(y.min(), y.max(), 100)
             )
-            if cbar_obj is None and kde_plot.collections:
-                cbar_obj = kde_plot.collections[0]
+            zz = kde(np.vstack([xx.ravel(), yy.ravel()])).reshape(xx.shape)
 
-            sns.scatterplot(
-                data=subset,
-                x=x_col,
-                y=y_col,
-                s=10,
-                alpha=0.8,
-                color="red",
-                ax=ax,
-            )
+            ax_main.contourf(xx, yy, zz, levels=20, cmap="Blues")
+            ax_main.scatter(x, y, s=10, color="red", alpha=0.6)
 
-        ax.set_title(f"{group} ({len(subset)})")
-        ax.set_xlabel(x_col)
-        ax.set_ylabel(y_col)
+            xbins = freedman_diaconis_bins(x)
+            ybins = freedman_diaconis_bins(y)
+            ax_xdist.hist(x, bins=xbins, color="gray", alpha=0.7)
+            ax_ydist.hist(y, bins=ybins, orientation="horizontal", color="gray", alpha=0.7)
 
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
+        ax_main.set_xlabel(x_col)
+        ax_main.set_ylabel(y_col)
+        ax_main.set_title(f"{group} ({len(subset)})")
+        plt.setp(ax_xdist.get_xticklabels(), visible=False)
+        plt.setp(ax_ydist.get_yticklabels(), visible=False)
 
-    if cbar_obj is not None:
-        fig.colorbar(cbar_obj, ax=axes[:n_groups], orientation="vertical", label="Density")
-
-    plt.suptitle(f"Joint Distribution: {x_col} vs {y_col}", fontsize=16)
+    plt.suptitle(f"Joint Distribution: {x_col} vs {y_col}", fontsize=18)
     if save_path:
-        plt.savefig(save_path, dpi=300)
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
 
+def freedman_diaconis_bins(data: np.ndarray) -> int:
+    """Calculate optimal number of histogram bins using Freedman–Diaconis rule."""
+    q75, q25 = np.percentile(data, [75, 25])
+    iqr = q75 - q25
+    n = len(data)
+    if iqr == 0 or n <= 1:
+        return 10
+    bin_width = 2 * iqr / np.cbrt(n)
+    return int(np.ceil((data.max() - data.min()) / bin_width)) or 10
+
+def plot_joint_distribution_overlayed(
+    df: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    stratify_col: str,
+    save_path: str = None,
+    groups: list = None,
+    lower_percentile: float = 0.1,
+    upper_percentile: float = 0.9,
+):
+    if groups is None:
+        groups = sorted(df[stratify_col].dropna().unique().tolist())
+
+    fig = plt.figure(figsize=(8, 8))
+    gs = GridSpec(4, 4, figure=fig, hspace=0.05, wspace=0.05)
+    ax_main = fig.add_subplot(gs[1:, :-1])
+    ax_xdist = fig.add_subplot(gs[0, :-1], sharex=ax_main)
+    ax_ydist = fig.add_subplot(gs[1:, -1], sharey=ax_main)
+
+    x_lower, x_upper = df[x_col].quantile([lower_percentile, upper_percentile])
+    y_lower, y_upper = df[y_col].quantile([lower_percentile, upper_percentile])
+
+    base_colors = plt.cm.tab10.colors  
+
+    for i, group in enumerate(groups):
+        subset = df[df[stratify_col] == group].copy()
+        mask = subset[x_col].between(x_lower, x_upper) & subset[y_col].between(y_lower, y_upper)
+        subset = subset.loc[mask, [x_col, y_col]].dropna()
+
+        if len(subset) > 1:
+            x = subset[x_col].to_numpy()
+            y = subset[y_col].to_numpy()
+
+            xy = np.vstack([x, y])
+            kde = gaussian_kde(xy)
+            xx, yy = np.meshgrid(
+                np.linspace(x_lower, x_upper, 100),
+                np.linspace(y_lower, y_upper, 100),
+            )
+            zz = kde(np.vstack([xx.ravel(), yy.ravel()])).reshape(xx.shape)
+
+            ax_main.contour(
+                xx, yy, zz, levels=10,
+                colors=[base_colors[i % len(base_colors)]],
+                alpha=0.8, linewidths=1.5
+            )
+
+            xbins = freedman_diaconis_bins(x)
+            ybins = freedman_diaconis_bins(y)
+
+            ax_xdist.hist(
+                x, bins=xbins, histtype="step",
+                color=base_colors[i % len(base_colors)], label=group
+            )
+            ax_ydist.hist(
+                y, bins=ybins, histtype="step",
+                orientation="horizontal", color=base_colors[i % len(base_colors)]
+            )
+
+    ax_main.set_xlabel(x_col)
+    ax_main.set_ylabel(y_col)
+    plt.setp(ax_xdist.get_xticklabels(), visible=False)
+    plt.setp(ax_ydist.get_yticklabels(), visible=False)
+
+    ax_xdist.legend(loc="upper right", fontsize=10)
+
+    plt.suptitle(f"Joint Distribution: {x_col} vs {y_col}", fontsize=16)
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.close()
 
 def energy_distance_2d(X, Y):
     """
@@ -336,16 +421,10 @@ def run_energy_distance(df, x_col, y_col, group1, group2, group_name: str, n_per
         return np.nan, np.nan
     return permutation_test_energy_parallel(data1, data2, n_permutations=n_permutations)
 
-
 def get_feature_groups(
-    phases: tuple = (-12, -10, -8, -5),
 ) -> dict:
     """
     Return a dictionary mapping analysis feature groups to feature lists and targets.
-
-    Parameters:
-    phases : tuple, optional
-        Phases for early g-r color features (default: (-12, -10, -8, -5)).
 
     Returns:
     feature_groups : dict
@@ -355,7 +434,7 @@ def get_feature_groups(
     rise_features = [f"{model}_{band}_rise_time" for model in ['sigmoid','power'] for band in ['g','r']]
     slope_features = [f"{model}_{band}_slope" for model in ['sigmoid','power'] for band in ['g','r']]
     curvature_features = [f"{model}_{band}_curvature" for model in ['sigmoid','power'] for band in ['g','r']]
-    early_color_features = [f"{model}_gr_mag_{phase}" for model in ['sigmoid','power'] for phase in phases]
+    early_color_features = [f"{model}_gr_mag_{phase}" for model in ['sigmoid','power'] for phase in config.PHASES]
     salt2_features = ['x1','c','z','x0','sig c','sig x1']
 
     feature_groups = {
@@ -392,30 +471,31 @@ def get_feature_groups(
 
     return feature_groups
 
-
-def run_full_analysis(df: pd.DataFrame, feature_groups: dict, stratify_col: str):
+def run_full_analysis(
+    df: pd.DataFrame,
+    feature_groups: dict,
+    stratify_col: str,
+    overlayed: bool = False
+):
     """
     Run full density-based analysis pipeline:
     - Compute derived features
-    - Generate KDE joint plots
+    - Generate KDE joint plots (overlayed or separate depending on flag)
     - Compute pairwise energy distances with permutation testing
     - Save plots and CSV summaries
 
-    Parameters:
+    Parameters
     df : pd.DataFrame
         Input merged DataFrame with flux-fit and SALT2 parameters.
     feature_groups : dict
         Feature-target mappings from get_feature_groups.
     stratify_col : str
         Column to stratify by (must be 'TNS classified' or 'color change').
-
-    Outputs:
-    - Merged DataFrame with derived features CSV.
-    - KDE plots per feature and target.
-    - CSV log of plots.
-    - CSV of energy distance permutation-test results.
+    overlayed : bool, optional
+        If True, plots all stratified groups overlayed on a single chart.
+        If False, plots each group separately (default: False).
     """
-    final_df = add_rise_slope_curvature(df)
+    final_df = add_rise_slope_curvature_color(df)
     plot_records = []
     pairwise_results = []
 
@@ -432,20 +512,30 @@ def run_full_analysis(df: pd.DataFrame, feature_groups: dict, stratify_col: str)
         plot_output_dir = config.COLOR_DENSITY_PLOTS_OUTPUT_DIR
 
     for fg_name, (features, target) in feature_groups.items():
-        target_dir = os.path.join(plot_output_dir, target)
+        target_path = target + "_overlayed" if overlayed else target
+        target_dir = os.path.join(plot_output_dir, target_path)
         os.makedirs(target_dir, exist_ok=True)
 
         for feat in features:
-            filename = f"{fg_name.replace(' ', '_')}_{feat}_vs_{target}_KDE.png"
+            filename = f"{fg_name.replace(' ', '_')}_{feat}_vs_{target}_KDE_overlayed.png"
             plot_save_path = os.path.join(target_dir, filename)
 
-            plot_joint_distribution(
-                final_df,
-                feat,
-                target,
-                stratify_col=stratify_colname,
-                save_path=plot_save_path,
-            )
+            if overlayed:
+                plot_joint_distribution_overlayed(
+                    final_df,
+                    feat,
+                    target,
+                    stratify_col=stratify_colname,
+                    save_path=plot_save_path,
+                )
+            else:
+                plot_joint_distribution(
+                    final_df,
+                    feat,
+                    target,
+                    stratify_col=stratify_colname,
+                    save_path=plot_save_path,
+                )
 
             plot_records.append(
                 {
@@ -478,6 +568,7 @@ def run_full_analysis(df: pd.DataFrame, feature_groups: dict, stratify_col: str)
                     }
                 )
 
+    # Save outputs
     pd.DataFrame(plot_records).to_csv(
         os.path.join(plot_data_output_dir, "KDE_plot_log.csv"), index=False
     )
@@ -485,8 +576,9 @@ def run_full_analysis(df: pd.DataFrame, feature_groups: dict, stratify_col: str)
         os.path.join(plot_data_output_dir, "energy_distance_permutation_results.csv"),
         index=False,
     )
-
+    
+    output_file_name = "TNS_stratified_wide" if stratify_col == "TNS classified" else "color_stratified_wide"
     final_df.to_csv(
-        os.path.join(wide_df_output_dir, "density_plots_with_derived_features.csv"),
+        os.path.join(wide_df_output_dir, output_file_name),
         index=False,
     )

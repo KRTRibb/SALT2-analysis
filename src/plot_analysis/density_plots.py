@@ -23,9 +23,10 @@ Outputs:
 - CSV logs of plots and energy distance permutation-test results.
 - CSV of merged data with derived features.
 """
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 import sncosmo_analysis_functions as saf
-
 
 def density_plots():
     """
@@ -46,7 +47,7 @@ def density_plots():
     feature_groups = saf.get_feature_groups()
 
     print("Running analysis stratified by TNS classification")
-    saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="TNS classified")
+    saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="TNS classified", overlayed=True)
     print("Done with TNS stratification.\n")
 
     df_color = saf.load_flux_and_sncosmo(flux_dir, sncosmo_dir, stratify_col="color change")

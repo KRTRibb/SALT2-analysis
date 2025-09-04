@@ -33,12 +33,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.optimize as op
-import os
+import sys, os
 from scipy.stats import chi2
 import csv
 import math
 from typing import Dict, List, Tuple
 
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import config
 from core import convert_magpsf_to_flux, fetch_valid_object_data_fink
 sns.set_context('talk')
