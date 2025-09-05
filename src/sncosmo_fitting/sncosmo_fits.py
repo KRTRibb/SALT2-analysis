@@ -21,9 +21,9 @@ Dependencies:
 """
 
 import config
-import sncosmo_fitting_functions as sff
+import sncosmo_fitting.sncosmo_fitting_functions as sff
 import pandas as pd
-
+import time
 
 def fit_SALT2():
     """
@@ -40,4 +40,6 @@ def fit_SALT2():
     sff.run_fitting(object_ids)
 
 if __name__ == '__main__':
+    start = time.time()
     fit_SALT2()
+    print(f"Time taken to run general sncosmo fits {time.time()-start}")

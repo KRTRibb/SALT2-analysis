@@ -228,7 +228,7 @@ def fit_and_save_sncosmo_model_fixed_z(light_curve_dict: LightcurveDict, save_di
 
             sncosmo.plot_lc(lc_data, model=fitted_model, errors=result.errors)
             plt.savefig(save_dir / f"{obj_id}_fixed_z.png")
-
+            plt.close()
         except Exception as e:
             print(f"fixed z sncosmo fit failed for {obj_id}: {e}")
 

@@ -1,8 +1,9 @@
-from plot_flux_fits import plot_flux_fits
-from sncosmo_fits import fit_SALT2
-from sncosmo_fits_fixed_z import fit_SALT2_fixed_z
-from density_plots import density_plots
+from flux_fits.plot_flux_fits import plot_flux_fits
+from sncosmo_fitting.sncosmo_fits import fit_SALT2
+from sncosmo_fitting.sncosmo_fits_fixed_z import fit_SALT2_fixed_z
+from plot_analysis.density_plots import density_plots
 from process_tns_search import tns_search_process
+import time
 
 def main():
     print("Doing flux fits")
@@ -26,4 +27,6 @@ def main():
     print("Finished density plots")
 
 if __name__ == '__main__':
+    start = time.time()
     main()
+    print(f"Time taken to run main {time.time() - start}")

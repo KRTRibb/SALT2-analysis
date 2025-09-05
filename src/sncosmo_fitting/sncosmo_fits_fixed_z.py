@@ -25,9 +25,10 @@ Dependencies:
 - flux_fits_data.csv containing precomputed flux fit information.
 """
 
-import sncosmo_fitting_functions as sff
+import sncosmo_fitting.sncosmo_fitting_functions as sff
 import config
 import pandas as pd
+import time
 
 def fit_SALT2_fixed_z():
     """
@@ -56,4 +57,6 @@ def fit_SALT2_fixed_z():
     print("done")
 
 if __name__ == '__main__':
-    fit_SALT2_fixed_z()
+  start = time.time()
+  fit_SALT2_fixed_z()
+  print(f"Time taken to run alll fixed z sncosmo fits {time.time() - start}")

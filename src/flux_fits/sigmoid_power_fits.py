@@ -78,43 +78,9 @@ def get_object_ids(start_date: str, end_date: str) -> np.array:
     return object_ids
 
 def sigmoid(t, a, b, c):
-    """
-    Sigmoid model function for light-curve fitting.
-
-    Parameters:
-    t : array-like
-        Time since first observation (days).
-    a : float
-        Amplitude parameter.
-    b : float
-        Midpoint (inflection point) parameter.
-    c : float
-        Growth rate parameter.
-
-    Returns:
-    flux : array-like
-        Modeled flux values.
-    """
     return a / (1 + np.exp(-c * (t - b)))
 
 def power_law(t, a, b, c):
-    """
-    Power-law model function for light-curve fitting.
-
-    Parameters:
-    t : array-like
-        Time since first observation (days).
-    a : float
-        Normalization parameter.
-    b : float
-        Time offset parameter.
-    c : float
-        Power-law index.
-
-    Returns:
-    flux : array-like
-        Modeled flux values.
-    """
     return a*(t-b)**c
 
 def compute_chi_squared_and_reduced(time, magpsf, sigmapsf, func, params) -> Tuple[float, float]:
@@ -169,22 +135,32 @@ def check_color_change(color_evolution) -> str:
 
     Parameters:
     color_evolution : list
-        Sequence of g–r color values (NaNs ignored).
+        Sequence of g-r color values (NaNs ignored).
 
     Returns:
     category : str
-        One of {'none', 'single', 'bump'}, indicating the number of color
-        changes. Here nump means two
+        One of 'none', 'single', or 'bump', indicating the number of color
+        changes. Here bump means two
     """
-    color_evolution = [x for x in color_evolution if not math.isnan(x)]
-    num_changes = 0
-    for a, b in zip(color_evolution, color_evolution[1:]):
-        if a * b <= 0 and not (a == 0 and b == 0):
-            num_changes += 1
+    color = np.asarray(color, dtype=float)
+    color = color[~np.isnan(color)]  
 
-    if num_changes == 0: return 'none'
-    elif num_changes == 1: return 'single'
-    else: return 'bump'
+    if color.size < 2:
+        return "none"
+
+    signs = np.sign(color)
+    sign_changes = signs[:-1] * signs[1:] < 0
+    not_both_zero = ~((color[:-1] == 0) & (color[1:] == 0))
+
+    num_changes = np.count_nonzero(sign_changes & not_both_zero)
+
+    match num_changes:
+        case 0:
+            return "none"
+        case 1:
+            return "single"
+        case 2:
+            return "bump"
 
 def plot_lc_and_fit_sigmoid_power_and_save(object_ids, start_date, end_date) -> None:
     """
@@ -212,7 +188,6 @@ def plot_lc_and_fit_sigmoid_power_and_save(object_ids, start_date, end_date) -> 
             print(f"Error processing object {object_id}: {e}")
 
     save_fit_results(attribute_list, config.RAW_DATA / "flux_fits_initial.csv")
-
 
 def process_single_object(object_id, start_date, end_date) -> Dict:
     """
@@ -243,7 +218,6 @@ def process_single_object(object_id, start_date, end_date) -> Dict:
 
     finalize_plot(fig, axes, object_id)
     return attributes
-
 
 def preprocess_object(df) -> pd.DataFrame:
     """
@@ -369,7 +343,6 @@ def fit_single_filter(single_object, object_id, model, filt, ax,
         adjusted_time, flux, sigmaflux, num_points,
         rise_time, single_object
     )
-
 
 def fit_sigmoid(time, flux, sigmaflux):
     """

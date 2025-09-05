@@ -25,8 +25,9 @@ Outputs:
 """
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+import time
 
-import sncosmo_analysis_functions as saf
+import plot_analysis.sncosmo_analysis_functions as saf
 
 def density_plots():
     """
@@ -39,6 +40,7 @@ def density_plots():
     - Runs 'run_full_analysis' for color-change stratification.
     - Saves all plots and CSV summaries to configured directories.
     """
+
     sncosmo_dir = "data/raw/general_results.csv"
     flux_dir = "data/raw/flux_fits_data.csv"
 
@@ -48,15 +50,19 @@ def density_plots():
 
     print("Running analysis stratified by TNS classification")
     saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="TNS classified", overlayed=True)
+    saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="TNS classified", overlayed=False)
+
     print("Done with TNS stratification.\n")
 
     df_color = saf.load_flux_and_sncosmo(flux_dir, sncosmo_dir, stratify_col="color change")
 
     print("Running analysis stratified by color change")
-    saf.run_full_analysis(df_color, feature_groups=feature_groups, stratify_col="color change")
+    saf.run_full_analysis(df_color, feature_groups=feature_groups, stratify_col="color change", overlayed=True)
+    saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="color change", overlayed=False)
     print("Done with color change stratification.\n")
 
 
 if __name__ == "__main__":
+    start = time.time()           
     density_plots()
-    
+    print(f"Time taken to run all density plotting {time.time() - start}")

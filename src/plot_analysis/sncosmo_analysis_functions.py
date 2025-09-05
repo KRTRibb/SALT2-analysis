@@ -33,6 +33,7 @@ from scipy.stats import gaussian_kde
 from matplotlib.gridspec import GridSpec
 from joblib import Parallel, delayed
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.patches import Ellipse
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import config
@@ -121,12 +122,6 @@ def add_rise_slope_curvature_color(df: pd.DataFrame, t_offset: int = 3) -> pd.Da
     """
     df = df.copy()
 
-    for model in ['sigmoid','power']:
-        for band in ['g','r']:
-            b_col = f"{model}_{band}_b"
-            rise_col = f"{model}_{band}_rise_time"
-            df[rise_col] = np.where(df[b_col].notna() & df['t0'].notna(), df['t0'] - df[b_col], np.nan)
-
     for band in ['g','r']:
         df[f"sigmoid_{band}_slope"] = np.where(
             df[f"sigmoid_{band}_a"].notna() & df[f"sigmoid_{band}_c"].notna(),
@@ -192,16 +187,8 @@ def freedman_diaconis_bins(data: np.ndarray) -> int:
     bins = int(np.ceil((data.max() - data.min()) / bin_width))
     return max(1, bins)
 
-def plot_joint_distribution(
-    df: pd.DataFrame,
-    x_col: str,
-    y_col: str,
-    stratify_col: str,
-    save_path: str = None,
-    groups: list = None,
-    lower_percentile: float = 0.1,
-    upper_percentile: float = 0.9,
-):
+def plot_joint_distribution(df: pd.DataFrame, x_col: str, y_col: str, stratify_col: str,
+    save_path: str = None, groups: list = None,lower_percentile: float = 0.1,upper_percentile: float = 0.9):
     """
     Plot joint distribution (2D KDE + scatter + marginal histograms) of two features,
     stratified by a column.
@@ -245,10 +232,7 @@ def plot_joint_distribution(
 
             xy = np.vstack([x, y])
             kde = gaussian_kde(xy)
-            xx, yy = np.meshgrid(
-                np.linspace(x.min(), x.max(), 100),
-                np.linspace(y.min(), y.max(), 100)
-            )
+            xx, yy = np.meshgrid(np.linspace(x.min(), x.max(), 100), np.linspace(y.min(), y.max(), 100))
             zz = kde(np.vstack([xx.ravel(), yy.ravel()])).reshape(xx.shape)
 
             ax_main.contourf(xx, yy, zz, levels=20, cmap="Blues")
@@ -270,26 +254,16 @@ def plot_joint_distribution(
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
 
-def freedman_diaconis_bins(data: np.ndarray) -> int:
-    """Calculate optimal number of histogram bins using Freedman–Diaconis rule."""
-    q75, q25 = np.percentile(data, [75, 25])
-    iqr = q75 - q25
-    n = len(data)
-    if iqr == 0 or n <= 1:
-        return 10
-    bin_width = 2 * iqr / np.cbrt(n)
-    return int(np.ceil((data.max() - data.min()) / bin_width)) or 10
 
-def plot_joint_distribution_overlayed(
-    df: pd.DataFrame,
-    x_col: str,
-    y_col: str,
-    stratify_col: str,
-    save_path: str = None,
-    groups: list = None,
-    lower_percentile: float = 0.1,
-    upper_percentile: float = 0.9,
-):
+def plot_median(x, y, ax, color):
+    median_x, median_y = np.median(x), np.median(y)
+
+    ax.scatter(median_x, median_y, color=color, marker='x', s=80, zorder=5)
+
+def plot_joint_distribution_overlayed(df, x_col, y_col, stratify_col,
+    save_path: str = None, groups: list = None,
+    lower_percentile: float = 0.1, upper_percentile: float = 0.9):
+
     if groups is None:
         groups = sorted(df[stratify_col].dropna().unique().tolist())
 
@@ -302,7 +276,7 @@ def plot_joint_distribution_overlayed(
     x_lower, x_upper = df[x_col].quantile([lower_percentile, upper_percentile])
     y_lower, y_upper = df[y_col].quantile([lower_percentile, upper_percentile])
 
-    base_colors = plt.cm.tab10.colors  
+    base_colors = plt.cm.tab10.colors
 
     for i, group in enumerate(groups):
         subset = df[df[stratify_col] == group].copy()
@@ -313,31 +287,35 @@ def plot_joint_distribution_overlayed(
             x = subset[x_col].to_numpy()
             y = subset[y_col].to_numpy()
 
+            # KDE
             xy = np.vstack([x, y])
             kde = gaussian_kde(xy)
             xx, yy = np.meshgrid(
-                np.linspace(x_lower, x_upper, 100),
-                np.linspace(y_lower, y_upper, 100),
+                np.linspace(x_lower, x_upper, 200),
+                np.linspace(y_lower, y_upper, 200)
             )
             zz = kde(np.vstack([xx.ravel(), yy.ravel()])).reshape(xx.shape)
 
-            ax_main.contour(
-                xx, yy, zz, levels=10,
+            # Compute 50% HDR threshold
+            z_sorted = np.sort(zz.ravel())[::-1]
+            cdf = np.cumsum(z_sorted) / np.sum(z_sorted)
+            level_50 = z_sorted[np.searchsorted(cdf, 0.5)]
+
+            # --- Translucent 50% HDR ---
+            ax_main.contourf(
+                xx, yy, zz,
+                levels=[level_50, zz.max()],
                 colors=[base_colors[i % len(base_colors)]],
-                alpha=0.8, linewidths=1.5
+                alpha=0.3   # control transparency
             )
 
-            xbins = freedman_diaconis_bins(x)
-            ybins = freedman_diaconis_bins(y)
+            # Marginals
+            ax_xdist.hist(x, bins="fd", histtype="step", color=base_colors[i % len(base_colors)], label=group)
+            ax_ydist.hist(y, bins="fd", histtype="step", orientation="horizontal",
+                          color=base_colors[i % len(base_colors)])
 
-            ax_xdist.hist(
-                x, bins=xbins, histtype="step",
-                color=base_colors[i % len(base_colors)], label=group
-            )
-            ax_ydist.hist(
-                y, bins=ybins, histtype="step",
-                orientation="horizontal", color=base_colors[i % len(base_colors)]
-            )
+            # Median
+            plot_median(x, y, ax_main, color=base_colors[i % len(base_colors)])
 
     ax_main.set_xlabel(x_col)
     ax_main.set_ylabel(y_col)
@@ -345,7 +323,6 @@ def plot_joint_distribution_overlayed(
     plt.setp(ax_ydist.get_yticklabels(), visible=False)
 
     ax_xdist.legend(loc="upper right", fontsize=10)
-
     plt.suptitle(f"Joint Distribution: {x_col} vs {y_col}", fontsize=16)
 
     if save_path:
@@ -431,39 +408,32 @@ def get_feature_groups(
         Mapping from feature group names to tuples (features_list, target_column).
     """
 
-    rise_features = [f"{model}_{band}_rise_time" for model in ['sigmoid','power'] for band in ['g','r']]
     slope_features = [f"{model}_{band}_slope" for model in ['sigmoid','power'] for band in ['g','r']]
     curvature_features = [f"{model}_{band}_curvature" for model in ['sigmoid','power'] for band in ['g','r']]
     early_color_features = [f"{model}_gr_mag_{phase}" for model in ['sigmoid','power'] for phase in config.PHASES]
     salt2_features = ['x1','c','z','x0','sig c','sig x1']
 
     feature_groups = {
-        'Rise Time vs x1': (rise_features, 'x1'),
         'Slope vs x1': (slope_features, 'x1'),
         'Curvature vs x1': (curvature_features, 'x1'),
         'Early g-r color vs x1': (early_color_features, 'x1'),
 
-        'Rise Time vs c': (rise_features, 'c'),
         'Slope vs c': (slope_features, 'c'),
         'Curvature vs c': (curvature_features, 'c'),
         'Early g-r color vs c': (early_color_features, 'c'),
 
-        'Rise Time vs z': (rise_features, 'z'),
         'Slope vs z': (slope_features, 'z'),
         'Curvature vs z': (curvature_features, 'z'),
         'Early g-r Color vs z': (early_color_features, 'z'),
 
-        'Rise Time vs x0': (rise_features, 'x0'),
         'Slope vs x0': (slope_features, 'x0'),
         'Curvature vs x0': (curvature_features, 'x0'),
         'Early g-r Color vs x0': (early_color_features, 'x0'),
 
-        'Rise Time vs sig c': (rise_features, 'sig c'),
         'Slope vs sig c': (slope_features, 'sig c'),
         'Curvature vs sig c': (curvature_features, 'sig c'),
         'Early g-r Color vs sig c': (early_color_features, 'sig c'),
 
-        'Rise Time vs sig x1': (rise_features, 'sig x1'),
         'Slope vs sig x1': (slope_features, 'sig x1'),
         'Curvature vs sig x1': (curvature_features, 'sig x1'),
         'Early g-r Color vs sig x1': (early_color_features, 'sig x1'),
@@ -521,21 +491,9 @@ def run_full_analysis(
             plot_save_path = os.path.join(target_dir, filename)
 
             if overlayed:
-                plot_joint_distribution_overlayed(
-                    final_df,
-                    feat,
-                    target,
-                    stratify_col=stratify_colname,
-                    save_path=plot_save_path,
-                )
+                plot_joint_distribution_overlayed(final_df, feat, target, stratify_col=stratify_colname, save_path=plot_save_path,)
             else:
-                plot_joint_distribution(
-                    final_df,
-                    feat,
-                    target,
-                    stratify_col=stratify_colname,
-                    save_path=plot_save_path,
-                )
+                plot_joint_distribution(final_df, feat, target, stratify_col=stratify_colname, save_path=plot_save_path,)
 
             plot_records.append(
                 {
@@ -547,15 +505,7 @@ def run_full_analysis(
             )
 
             for group1, group2 in itertools.combinations(groups, 2):
-                dist, pval = run_energy_distance(
-                    final_df,
-                    feat,
-                    target,
-                    group1,
-                    group2,
-                    group_name=stratify_colname,
-                    n_permutations=10000,
-                )
+                dist, pval = run_energy_distance(final_df, feat, target, group1, group2, group_name=stratify_colname, n_permutations=10000,)
                 pairwise_results.append(
                     {
                         "feature_group": fg_name,
@@ -568,7 +518,6 @@ def run_full_analysis(
                     }
                 )
 
-    # Save outputs
     pd.DataFrame(plot_records).to_csv(
         os.path.join(plot_data_output_dir, "KDE_plot_log.csv"), index=False
     )
