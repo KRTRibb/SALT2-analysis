@@ -1,7 +1,7 @@
 from flux_fits.plot_flux_fits import plot_flux_fits
 from sncosmo_fitting.sncosmo_fits import fit_SALT2
 from sncosmo_fitting.sncosmo_fits_fixed_z import fit_SALT2_fixed_z
-from plot_analysis.density_plots import density_plots
+from plot_analysis.density_plots import density_plots_seperate, density_plots_overlayed
 from process_tns_search import tns_search_process
 import time
 
@@ -23,7 +23,8 @@ def main():
     print("Finished sncosmo fits with fixed z")
 
     print("Starting density plots")
-    density_plots()
+    density_plots_seperate()
+    density_plots_overlayed()
     print("Finished density plots")
 
 if __name__ == '__main__':

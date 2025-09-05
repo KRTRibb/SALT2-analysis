@@ -29,9 +29,41 @@ import time
 
 import plot_analysis.sncosmo_analysis_functions as saf
 
-def density_plots():
+def density_plots_seperate():
     """
-    Run the full sncosmo analysis workflow for both TNS classification and color-change stratifications.
+    Run the full sncosmo analysis workflow for both TNS classification and color-change stratifications
+    and plot each stratification on seperate plots.
+
+    Workflow:
+    - Loads the relevant CSV files with flux-fit and SALT2 data.
+    - Computes derived features for each object.
+    - Runs 'run_full_analysis' for TNS classification stratification.
+    - Runs 'run_full_analysis' for color-change stratification.
+    - Saves all plots and CSV summaries to configured directories.
+    """
+
+    sncosmo_dir = "data/raw/general_results.csv"
+    flux_dir = "data/raw/flux_fits_data.csv"
+
+    df_tns = saf.load_flux_and_sncosmo(flux_dir, sncosmo_dir, stratify_col="TNS classified")
+
+    feature_groups = saf.get_feature_groups()
+
+    print("Running analysis stratified by TNS classification")
+    saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="TNS classified", overlayed=False)
+
+    print("Done with TNS stratification.\n")
+
+    df_color = saf.load_flux_and_sncosmo(flux_dir, sncosmo_dir, stratify_col="color change")
+
+    print("Running analysis stratified by color change")
+    saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="color change", overlayed=False)
+    print("Done with color change stratification.\n")
+
+def density_plots_overlayed():
+    """
+    Run the full sncosmo analysis workflow for both TNS classification and color-change stratifications 
+    and plot each stratification on a single plot overlayed.
 
     Workflow:
     - Loads the relevant CSV files with flux-fit and SALT2 data.
@@ -50,7 +82,6 @@ def density_plots():
 
     print("Running analysis stratified by TNS classification")
     saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="TNS classified", overlayed=True)
-    saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="TNS classified", overlayed=False)
 
     print("Done with TNS stratification.\n")
 
@@ -58,11 +89,11 @@ def density_plots():
 
     print("Running analysis stratified by color change")
     saf.run_full_analysis(df_color, feature_groups=feature_groups, stratify_col="color change", overlayed=True)
-    saf.run_full_analysis(df_tns, feature_groups=feature_groups, stratify_col="color change", overlayed=False)
     print("Done with color change stratification.\n")
 
 
 if __name__ == "__main__":
     start = time.time()           
-    density_plots()
+    density_plots_seperate()
+    density_plots_overlayed()
     print(f"Time taken to run all density plotting {time.time() - start}")
