@@ -257,7 +257,6 @@ def plot_joint_distribution(df: pd.DataFrame, x_col: str, y_col: str, stratify_c
 
 def plot_median(x, y, ax, color):
     median_x, median_y = np.median(x), np.median(y)
-
     ax.scatter(median_x, median_y, color=color, marker='x', s=80, zorder=5)
 
 def plot_joint_distribution_overlayed(df, x_col, y_col, stratify_col,
@@ -287,34 +286,26 @@ def plot_joint_distribution_overlayed(df, x_col, y_col, stratify_col,
             x = subset[x_col].to_numpy()
             y = subset[y_col].to_numpy()
 
-            # KDE
             xy = np.vstack([x, y])
             kde = gaussian_kde(xy)
-            xx, yy = np.meshgrid(
-                np.linspace(x_lower, x_upper, 200),
-                np.linspace(y_lower, y_upper, 200)
-            )
+            xx, yy = np.meshgrid(np.linspace(x_lower, x_upper, 200), np.linspace(y_lower, y_upper, 200))
             zz = kde(np.vstack([xx.ravel(), yy.ravel()])).reshape(xx.shape)
 
-            # Compute 50% HDR threshold
             z_sorted = np.sort(zz.ravel())[::-1]
             cdf = np.cumsum(z_sorted) / np.sum(z_sorted)
-            level_50 = z_sorted[np.searchsorted(cdf, 0.5)]
+            level_50 = z_sorted[np.searchsorted(cdf, 0.6)]
 
-            # --- Translucent 50% HDR ---
             ax_main.contourf(
                 xx, yy, zz,
                 levels=[level_50, zz.max()],
                 colors=[base_colors[i % len(base_colors)]],
-                alpha=0.3   # control transparency
+                alpha=0.3
             )
 
-            # Marginals
             ax_xdist.hist(x, bins="fd", histtype="step", color=base_colors[i % len(base_colors)], label=group)
             ax_ydist.hist(y, bins="fd", histtype="step", orientation="horizontal",
                           color=base_colors[i % len(base_colors)])
 
-            # Median
             plot_median(x, y, ax_main, color=base_colors[i % len(base_colors)])
 
     ax_main.set_xlabel(x_col)
