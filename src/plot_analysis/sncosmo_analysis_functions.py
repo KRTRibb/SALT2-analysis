@@ -26,14 +26,11 @@ import os, sys
 import itertools
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import cdist
 from scipy.stats import gaussian_kde
 from matplotlib.gridspec import GridSpec
 from joblib import Parallel, delayed
-from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.patches import Ellipse
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import config
@@ -329,7 +326,7 @@ def energy_distance_2d(X, Y):
     YY = cdist(Y, Y, metric='euclidean')
     return 2*XY.mean() - XX.mean() - YY.mean()
 
-def permutation_test_energy_parallel(data1, data2, n_permutations=1000):
+def permutation_test(data1, data2, n_permutations=1000):
     """
     Compute permutation-based p-value for 2D energy distance using parallel execution.
 
@@ -387,7 +384,7 @@ def run_energy_distance(df, x_col, y_col, group1, group2, group_name: str, n_per
     data2 = df[df[group_name]==group2][[x_col, y_col]].dropna().values
     if len(data1)<2 or len(data2)<2:
         return np.nan, np.nan
-    return permutation_test_energy_parallel(data1, data2, n_permutations=n_permutations)
+    return permutation_test(data1, data2, n_permutations=n_permutations)
 
 def get_feature_groups(
 ) -> dict:
@@ -432,6 +429,18 @@ def get_feature_groups(
 
     return feature_groups
 
+def get_output_dirs(stratify_col):
+    if stratify_col == "TNS classified":
+        wide_df_output_dir = config.PROCESSED_DATA / "density_plots_by_TNS"
+        plot_data_output_dir = config.TNS_DENSITY_ANALYSIS_OUTPUT_DIR
+        plot_output_dir = config.TNS_DENSITY_PLOTS_OUTPUT_DIR
+    else:
+        wide_df_output_dir = config.PROCESSED_DATA / "density_plots_by_color"
+        plot_data_output_dir = config.COLOR_DENSITY_ANALYSIS_OUTPUT_DIR
+        plot_output_dir = config.COLOR_DENSITY_PLOTS_OUTPUT_DIR
+
+    return wide_df_output_dir, plot_data_output_dir, plot_output_dir
+
 def run_full_analysis(
     df: pd.DataFrame,
     feature_groups: dict,
@@ -463,14 +472,7 @@ def run_full_analysis(
     stratify_colname = "tns_group" if stratify_col == "TNS classified" else "color change"
     groups = sorted(final_df[stratify_colname].dropna().unique().tolist())
 
-    if stratify_col == "TNS classified":
-        wide_df_output_dir = config.PROCESSED_DATA / "density_plots_by_TNS"
-        plot_data_output_dir = config.TNS_DENSITY_ANALYSIS_OUTPUT_DIR
-        plot_output_dir = config.TNS_DENSITY_PLOTS_OUTPUT_DIR
-    else:
-        wide_df_output_dir = config.PROCESSED_DATA / "density_plots_by_color"
-        plot_data_output_dir = config.COLOR_DENSITY_ANALYSIS_OUTPUT_DIR
-        plot_output_dir = config.COLOR_DENSITY_PLOTS_OUTPUT_DIR
+    wide_df_output_dir, plot_data_output_dir, plot_output_dir = get_output_dirs(stratify_col)
 
     for fg_name, (features, target) in feature_groups.items():
         target_path = target + "_overlayed" if overlayed else target
