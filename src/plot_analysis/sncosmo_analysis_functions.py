@@ -5,7 +5,7 @@ Functions for analyzing SALT2 and flux-fit data of early Type Ia candidate light
 
 This module provides tools to:
 - Load and merge flux-fit and SALT2 results.
-- Compute derived features such as rise time, slope, curvature, and early g–r color.
+- Compute derived features such as rise time, slope, curvature, and early g-r color.
 - Assign Ia/non-Ia grouping based on TNS classifications.
 - Plot joint distributions of features vs. SALT2 parameters with KDE and scatter plots.
 - Compute energy distances between groups with permutation testing.
