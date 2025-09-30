@@ -10,6 +10,7 @@ build/
 .venv/
 
 .ipynb_checkpoints/
+.VSCodeCounter
 
 
 Data/*
