@@ -21,7 +21,6 @@ Dependencies:
 - config.py for file paths and output directories.
 """
 
-
 import os, sys
 import itertools
 import numpy as np
@@ -150,12 +149,12 @@ def add_rise_slope_curvature_color(df: pd.DataFrame, t_offset: int = 3) -> pd.Da
     for phase in config.PHASES:
         t_sample = df['t0'] + phase
         df[f"sigmoid_gr_mag_{phase}"] = -2.5 * np.log10(
-            (cleaned_sigmoid_flux(df['sigmoid_g_a'], df['sigmoid_g_b'], df['sigmoid_g_c'], t_sample)+25) /
-            (cleaned_sigmoid_flux(df['sigmoid_r_a'], df['sigmoid_r_b'], df['sigmoid_r_c'], t_sample)+25)
+            (cleaned_sigmoid_flux(df['sigmoid_g_a'], df['sigmoid_g_b'], df['sigmoid_g_c'], t_sample)) /
+            (cleaned_sigmoid_flux(df['sigmoid_r_a'], df['sigmoid_r_b'], df['sigmoid_r_c'], t_sample))
         )
         df[f"power_gr_mag_{phase}"] = -2.5 * np.log10(
-            (cleaned_power_flux(df['power_g_a'], df['power_g_b'], df['power_g_c'], t_sample)+25) /
-            (cleaned_power_flux(df['power_r_a'], df['power_r_b'], df['power_r_c'], t_sample)+25)
+            (cleaned_power_flux(df['power_g_a'], df['power_g_b'], df['power_g_c'], t_sample)) /
+            (cleaned_power_flux(df['power_r_a'], df['power_r_b'], df['power_r_c'], t_sample))
         )
 
     return df
@@ -339,8 +338,8 @@ def permutation_test(data1, data2, n_permutations=1000):
     Returns:
     obs_dist : float
         Observed energy distance between data1 and data2.
-    p_value : float
-        Permutation test p-value.
+    1 - p_value : float
+        1 - Permutation test p-value.
 
     Notes:
         Computes the permutations in parallel using all available cores (n_jobs=-1)
